@@ -243,3 +243,261 @@ func isNil(v interface{}) bool {
 		return false
 	}
 }
+
+// Greater asserts that actual is greater than expected
+func Greater(t T, expected, actual int, msg ...string) {
+	if actual <= expected {
+		fail(t, "Greater", message(msg...), expected, actual)
+	}
+}
+
+// GreaterOrEqual asserts that actual is greater than or equal to expected
+func GreaterOrEqual(t T, expected, actual int, msg ...string) {
+	if actual < expected {
+		fail(t, "GreaterOrEqual", message(msg...), expected, actual)
+	}
+}
+
+// Less asserts that actual is less than expected
+func Less(t T, expected, actual int, msg ...string) {
+	if actual >= expected {
+		fail(t, "Less", message(msg...), expected, actual)
+	}
+}
+
+// LessOrEqual asserts that actual is less than or equal to expected
+func LessOrEqual(t T, expected, actual int, msg ...string) {
+	if actual > expected {
+		fail(t, "LessOrEqual", message(msg...), expected, actual)
+	}
+}
+
+// Empty asserts that a string, slice, map, etc. is empty
+func Empty(t T, actual interface{}, msg ...string) {
+	if !isEmpty(actual) {
+		fail(t, "Empty", message(msg...), "empty", actual)
+	}
+}
+
+// NotEmpty asserts that a string, slice, map, etc. is not empty
+func NotEmpty(t T, actual interface{}, msg ...string) {
+	if isEmpty(actual) {
+		fail(t, "NotEmpty", message(msg...), "not empty", actual)
+	}
+}
+
+// TypeOf asserts that the actual value is of the expected type
+func TypeOf(t T, expected interface{}, actual interface{}, msg ...string) {
+	expectedType := reflect.TypeOf(expected)
+	actualType := reflect.TypeOf(actual)
+	if expectedType != actualType {
+		fail(t, "TypeOf", message(msg...), expectedType, actualType)
+	}
+}
+
+// Implements asserts that actual implements the expected interface
+func Implements(t T, expectedInterface interface{}, actual interface{}, msg ...string) {
+	var expectedType reflect.Type
+	if et, ok := expectedInterface.(reflect.Type); ok {
+		expectedType = et
+	} else {
+		expectedType = reflect.TypeOf(expectedInterface)
+	}
+	if expectedType == nil {
+		return
+	}
+	actualType := reflect.TypeOf(actual)
+	if actualType == nil {
+		fail(t, "Implements", message(msg...), expectedType, nil)
+		return
+	}
+	if !actualType.Implements(expectedType) {
+		fail(t, "Implements", message(msg...), expectedType, actualType)
+	}
+}
+
+// PanicsWithValue asserts that the function panics with the expected value
+func PanicsWithValue(t T, expected interface{}, fn func(), msg ...string) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			fail(t, "PanicsWithValue", message(msg...), expected, "no panic")
+			return
+		}
+		if !reflect.DeepEqual(expected, r) {
+			fail(t, "PanicsWithValue", message(msg...), expected, r)
+		}
+	}()
+	fn()
+}
+
+// ElementsMatch asserts that two slices contain the same elements (order independent)
+func ElementsMatch(t T, expected, actual interface{}, msg ...string) {
+	expVal := reflect.ValueOf(expected)
+	actVal := reflect.ValueOf(actual)
+
+	if expVal.Kind() != reflect.Slice || actVal.Kind() != reflect.Slice {
+		fail(t, "ElementsMatch", message(msg...), "slice", reflect.ValueOf(actual).Kind())
+		return
+	}
+
+	expElems := expandAndNormalize(expVal)
+	actElems := expandAndNormalize(actVal)
+
+	if len(expElems) != len(actElems) {
+		fail(t, "ElementsMatch", message(msg...), expElems, actElems)
+		return
+	}
+
+	for _, e := range expElems {
+		found := false
+		for _, a := range actElems {
+			if reflect.DeepEqual(e, a) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			fail(t, "ElementsMatch", message(msg...), expElems, actElems)
+			return
+		}
+	}
+}
+
+// JSONContains asserts that the JSON string contains the expected JSON fragment
+func JSONContains(t T, jsonStr, expectedFragment string, msg ...string) {
+	var expected, actual interface{}
+	if err := json.Unmarshal([]byte(expectedFragment), &expected); err != nil {
+		fail(t, "JSONContains", message(msg...), expectedFragment, "invalid JSON fragment")
+		return
+	}
+	if err := json.Unmarshal([]byte(jsonStr), &actual); err != nil {
+		fail(t, "JSONContains", message(msg...), expectedFragment, "invalid JSON string")
+		return
+	}
+	if !containsJSON(expected, actual) {
+		fail(t, "JSONContains", message(msg...), expectedFragment, jsonStr)
+	}
+}
+
+// Subset asserts that the actual slice contains all expected elements
+func Subset(t T, expected, actual interface{}, msg ...string) {
+	expVal := reflect.ValueOf(expected)
+	actVal := reflect.ValueOf(actual)
+
+	if expVal.Kind() != reflect.Slice || actVal.Kind() != reflect.Slice {
+		fail(t, "Subset", message(msg...), "slice", reflect.ValueOf(actual).Kind())
+		return
+	}
+
+	for i := 0; i < expVal.Len(); i++ {
+		found := false
+		for j := 0; j < actVal.Len(); j++ {
+			if reflect.DeepEqual(expVal.Index(i).Interface(), actVal.Index(j).Interface()) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			fail(t, "Subset", message(msg...), expected, actual)
+			return
+		}
+	}
+}
+
+// Zero asserts that value is zero value
+func Zero(t T, actual interface{}, msg ...string) {
+	if !isZero(actual) {
+		fail(t, "Zero", message(msg...), "zero value", actual)
+	}
+}
+
+// NotZero asserts that value is not zero value
+func NotZero(t T, actual interface{}, msg ...string) {
+	if isZero(actual) {
+		fail(t, "NotZero", message(msg...), "non-zero value", actual)
+	}
+}
+
+// ---- Helper functions ----
+
+func isEmpty(v interface{}) bool {
+	rv := reflect.ValueOf(v)
+	switch rv.Kind() {
+	case reflect.Array, reflect.Slice, reflect.Map, reflect.String:
+		return rv.Len() == 0
+	case reflect.Ptr, reflect.Interface:
+		if rv.IsNil() {
+			return true
+		}
+		return isEmpty(rv.Elem().Interface())
+	default:
+		return false
+	}
+}
+
+func expandAndNormalize(v reflect.Value) []interface{} {
+	var elems []interface{}
+	for i := 0; i < v.Len(); i++ {
+		elems = append(elems, v.Index(i).Interface())
+	}
+	return elems
+}
+
+func containsJSON(expected, actual interface{}) bool {
+	if reflect.DeepEqual(expected, actual) {
+		return true
+	}
+	// Simple containment check for nested objects
+	switch exp := expected.(type) {
+	case map[string]interface{}:
+		if act, ok := actual.(map[string]interface{}); ok {
+			for k, v := range exp {
+				if av, exists := act[k]; exists {
+					if !containsJSON(v, av) {
+						return false
+					}
+				} else {
+					return false
+				}
+			}
+			return true
+		}
+	}
+	return false
+}
+
+func isZero(v interface{}) bool {
+	rv := reflect.ValueOf(v)
+	switch rv.Kind() {
+	case reflect.Ptr, reflect.Interface:
+		if rv.IsNil() {
+			return true
+		}
+		return isZero(rv.Elem().Interface())
+	case reflect.Struct:
+		// Check if all fields are zero
+		for i := 0; i < rv.NumField(); i++ {
+			if !isZero(rv.Field(i).Interface()) {
+				return false
+			}
+		}
+		return true
+	case reflect.Array, reflect.Slice:
+		return rv.Len() == 0
+	case reflect.Map:
+		return rv.Len() == 0
+	case reflect.String:
+		return rv.Len() == 0
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return rv.Int() == 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return rv.Uint() == 0
+	case reflect.Float32, reflect.Float64:
+		return rv.Float() == 0
+	case reflect.Bool:
+		return !rv.Bool()
+	default:
+		return false
+	}
+}
