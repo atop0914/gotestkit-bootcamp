@@ -102,6 +102,48 @@ func (p *Person) Address() string {
 	)
 }
 
+func (p *Person) Username() string {
+	return (&Internet{}).Username()
+}
+
+func (p *Person) Password() string {
+	return (&Internet{}).Password()
+}
+
+func (p *Person) Age(min, max int) int {
+	return (&Number{}).Int(min, max)
+}
+
+// Company generates fake company data
+type Company struct{}
+
+func (c *Company) Name() string {
+	initRand()
+	return fmt.Sprintf("%s %s",
+		companyAdjectives[globalRand.Intn(len(companyAdjectives))],
+		companyNouns[globalRand.Intn(len(companyNouns))],
+	)
+}
+
+func (c *Company) NameWithSuffix() string {
+	initRand()
+	suffix := companySuffixes[globalRand.Intn(len(companySuffixes))]
+	return c.Name() + " " + suffix
+}
+
+func (c *Company) Industry() string {
+	initRand()
+	return industries[globalRand.Intn(len(industries))]
+}
+
+func (c *Company) Email() string {
+	initRand()
+	return fmt.Sprintf("contact@%s.%s",
+		strings.ToLower(companyAdjectives[globalRand.Intn(len(companyAdjectives))]),
+		domains[globalRand.Intn(len(domains))],
+	)
+}
+
 // Internet generates fake internet data
 type Internet struct{}
 
@@ -168,6 +210,21 @@ func (i *Internet) MacAddress() string {
 		globalRand.Uint32()&0xFF,
 		globalRand.Uint32()&0xFF,
 	)
+}
+
+func (i *Internet) Domain() string {
+	initRand()
+	return fmt.Sprintf("%s.%s",
+		strings.ToLower(adjectives[globalRand.Intn(len(adjectives))]),
+		domains[globalRand.Intn(len(domains))],
+	)
+}
+
+func (i *Internet) Slug() string {
+	initRand()
+	adj := adjectives[globalRand.Intn(len(adjectives))]
+	noun := nouns[globalRand.Intn(len(nouns))]
+	return strings.ToLower(adj) + "-" + strings.ToLower(noun)
 }
 
 // Number generates fake numbers
@@ -238,14 +295,204 @@ func (t *Text) Paragraph(sentenceCount int) string {
 	return strings.Join(sentences, " ")
 }
 
+// Time generates fake time data
+type Time struct{}
+
+func (t *Time) Date() time.Time {
+	initRand()
+	now := time.Now()
+	offset := globalRand.Intn(365*24) * int(time.Hour)
+	return now.Add(-time.Duration(offset))
+}
+
+func (t *Time) DateBetween(start, end time.Time) time.Time {
+	initRand()
+	duration := end.Sub(start)
+	offset := time.Duration(globalRand.Int63() % int64(duration.Hours()))
+	return start.Add(offset)
+}
+
+func (t *Time) Timestamp() int64 {
+	return t.Date().Unix()
+}
+
+func (t *Time) TimestampBetween(start, end int64) int64 {
+	initRand()
+	return start + globalRand.Int63()%(end-start)
+}
+
+func (t *Time) Month() string {
+	initRand()
+	return months[globalRand.Intn(len(months))]
+}
+
+func (t *Time) DayOfWeek() string {
+	initRand()
+	return daysOfWeek[globalRand.Intn(len(daysOfWeek))]
+}
+
+// File generates fake file data
+type File struct{}
+
+func (f *File) FileName() string {
+	initRand()
+	ext := fileExtensions[globalRand.Intn(len(fileExtensions))]
+	name := strings.ToLower(nouns[globalRand.Intn(len(nouns))])
+	return fmt.Sprintf("%s%s", name, ext)
+}
+
+func (f *File) FileNameWithUUID() string {
+	initRand()
+	ext := fileExtensions[globalRand.Intn(len(fileExtensions))]
+	return fmt.Sprintf("%s_%d%s",
+		strings.ToLower(nouns[globalRand.Intn(len(nouns))]),
+		globalRand.Int63(),
+		ext,
+	)
+}
+
+func (f *File) Extension() string {
+	initRand()
+	return fileExtensions[globalRand.Intn(len(fileExtensions))]
+}
+
+func (f *File) MIMEType() string {
+	initRand()
+	return mimeTypes[globalRand.Intn(len(mimeTypes))]
+}
+
+func (f *File) FilePath() string {
+	initRand()
+	return fmt.Sprintf("/%s/%s/%s",
+		strings.ToLower(adjectives[globalRand.Intn(len(adjectives))]),
+		strings.ToLower(nouns[globalRand.Intn(len(nouns))]),
+		f.FileName(),
+	)
+}
+
+// Color generates fake color data
+type Color struct{}
+
+func (c *Color) Hex() string {
+	initRand()
+	return fmt.Sprintf("#%06x", globalRand.Uint32()&0xFFFFFF)
+}
+
+func (c *Color) RGB() string {
+	initRand()
+	return fmt.Sprintf("rgb(%d, %d, %d)",
+		globalRand.Intn(256),
+		globalRand.Intn(256),
+		globalRand.Intn(256),
+	)
+}
+
+func (c *Color) RGBA() string {
+	initRand()
+	return fmt.Sprintf("rgba(%d, %d, %d, %.2f)",
+		globalRand.Intn(256),
+		globalRand.Intn(256),
+		globalRand.Intn(256),
+		float64(globalRand.Intn(100))/100.0,
+	)
+}
+
+func (c *Color) Name() string {
+	initRand()
+	return colorNames[globalRand.Intn(len(colorNames))]
+}
+
+// Currency generates fake currency data
+type Currency struct{}
+
+func (c *Currency) Code() string {
+	initRand()
+	return currencyCodes[globalRand.Intn(len(currencyCodes))]
+}
+
+func (c *Currency) Name() string {
+	initRand()
+	return currencyNames[globalRand.Intn(len(currencyNames))]
+}
+
+func (c *Currency) Amount(min, max float64) float64 {
+	return (&Number{}).Float(min, max, 2)
+}
+
+func (c *Currency) Symbol() string {
+	initRand()
+	return currencySymbols[globalRand.Intn(len(currencySymbols))]
+}
+
+// Lorem generates lorem ipsum text
+type Lorem struct{}
+
+func (l *Lorem) Word() string {
+	initRand()
+	return loremWords[globalRand.Intn(len(loremWords))]
+}
+
+func (l *Lorem) Words(count int) string {
+	initRand()
+	var result []string
+	for i := 0; i < count; i++ {
+		result = append(result, loremWords[globalRand.Intn(len(loremWords))])
+	}
+	return strings.Join(result, " ")
+}
+
+func (l *Lorem) Sentence(wordCount int) string {
+	words := l.Words(wordCount)
+	runes := []rune(words)
+	runes[0] = unicode.ToUpper(runes[0])
+	return string(runes) + "."
+}
+
+func (l *Lorem) Paragraph(sentenceCount int) string {
+	initRand()
+	var sentences []string
+	for i := 0; i < sentenceCount; i++ {
+		wordCount := 8 + globalRand.Intn(12)
+		sentences = append(sentences, l.Sentence(wordCount))
+	}
+	return strings.Join(sentences, " ")
+}
+
 // PersonData generates fake person data
 func PersonData() *Person { return &Person{} }
+
+// CompanyData generates fake company data
+func CompanyData() *Company { return &Company{} }
+
+// InternetData generates fake internet data
+func InternetData() *Internet { return &Internet{} }
+
+// NumberData generates fake number data
+func NumberData() *Number { return &Number{} }
+
+// TextData generates fake text data
+func TextData() *Text { return &Text{} }
+
+// TimeData generates fake time data
+func TimeData() *Time { return &Time{} }
+
+// FileData generates fake file data
+func FileData() *File { return &File{} }
+
+// ColorData generates fake color data
+func ColorData() *Color { return &Color{} }
+
+// CurrencyData generates fake currency data
+func CurrencyData() *Currency { return &Currency{} }
+
+// LoremData generates fake lorem data
+func LoremData() *Lorem { return &Lorem{} }
 
 // Data arrays
 var firstNames = []string{
 	"James", "Mary", "John", "Patricia", "Robert", "Jennifer", "Michael", "Linda",
 	"William", "Barbara", "David", "Elizabeth", "Richard", "Susan", "Joseph", "Jessica",
-	"Thomas", "Sarah","Charles", "Karen", "Christopher", "Nancy", "Daniel", "Lisa",
+	"Thomas", "Sarah", "Charles", "Karen", "Christopher", "Nancy", "Daniel", "Lisa",
 	"Matthew", "Betty", "Anthony", "Margaret", "Mark", "Sandra", "Donald", "Ashley",
 }
 
@@ -275,6 +522,51 @@ var words = []string{
 	"fig", "grape", "honeydew", "kiwi", "lemon",
 	"mango", "nectarine", "orange", "papaya", "quince",
 	"raspberry", "strawberry", "tangerine", "watermelon", "xylophone",
-	"yellow", "zebra", " zebra", "abandon", "ability", "able",
-	"about", "above", "abroad", "absense", "absolute", "absorb",
+	"yellow", "zebra", "abandon", "ability", "able",
+	"about", "above", "abroad", "absence", "absolute", "absorb",
+}
+
+var companyAdjectives = []string{"Global", "United", "Prime", "Elite", "Apex", "Nova", "Summit", "Pioneer"}
+var companyNouns = []string{"Tech", "Systems", "Solutions", "Industries", "Corp", "Labs", "Dynamics", "Ventures"}
+var companySuffixes = []string{"Inc", "LLC", "Ltd", "Corp", "Co", "Group", "Holdings", "Partners"}
+var industries = []string{
+	"Technology", "Healthcare", "Finance", "Retail", "Manufacturing",
+	"Education", "Real Estate", "Transportation", "Energy", "Entertainment",
+}
+
+var months = []string{
+	"January", "February", "March", "April", "May", "June",
+	"July", "August", "September", "October", "November", "December",
+}
+
+var daysOfWeek = []string{
+	"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
+}
+
+var fileExtensions = []string{".txt", ".pdf", ".doc", ".docx", ".jpg", ".png", ".gif", ".mp4", ".zip", ".csv"}
+var mimeTypes = []string{
+	"text/plain", "application/pdf", "image/jpeg", "image/png",
+	"image/gif", "video/mp4", "application/zip", "text/csv",
+}
+
+var colorNames = []string{
+	"red", "blue", "green", "yellow", "orange", "purple", "pink", "black", "white", "gray",
+}
+
+var currencyCodes = []string{"USD", "EUR", "GBP", "JPY", "CNY", "AUD", "CAD", "CHF", "INR", "BRL"}
+var currencyNames = []string{
+	"US Dollar", "Euro", "British Pound", "Japanese Yen", "Chinese Yuan",
+	"Australian Dollar", "Canadian Dollar", "Swiss Franc", "Indian Rupee", "Brazilian Real",
+}
+var currencySymbols = []string{"$", "€", "£", "¥", "¥", "A$", "C$", "Fr", "₹", "R$"}
+
+var loremWords = []string{
+	"lorem", "ipsum", "dolor", "sit", "amet", "consectetur", "adipiscing", "elit",
+	"sed", "do", "eiusmod", "tempor", "incididunt", "ut", "labore", "et", "dolore",
+	"magna", "aliqua", "enim", "ad", "minim", "veniam", "quis", "nostrud",
+	"exercitation", "ullamco", "laboris", "nisi", "aliquip", "ex", "ea", "commodo",
+	"consequat", "duis", "aute", "irure", "in", "reprehenderit", "voluptate",
+	"velit", "esse", "cillum", "fugiat", "nulla", "pariatur", "excepteur", "sint",
+	"occaecat", "cupidatat", "non", "proident", "sunt", "culpa", "qui", "officia",
+	"deserunt", "mollit", "anim", "id", "est", "laborum",
 }
