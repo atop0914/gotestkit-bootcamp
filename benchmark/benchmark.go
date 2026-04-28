@@ -89,13 +89,7 @@ func RunMultiple(b *testing.B, f func(), runs int) Stats {
 	// Calculate median
 	sorted := make([]float64, runs)
 	copy(sorted, results)
-	for i := 0; i < runs-1; i++ {
-		for j := i + 1; j < runs; j++ {
-			if sorted[i] > sorted[j] {
-				sorted[i], sorted[j] = sorted[j], sorted[i]
-			}
-		}
-	}
+	quickSort(sorted, 0, runs-1)
 	median := sorted[runs/2]
 	if runs%2 == 0 {
 		median = (sorted[runs/2-1] + sorted[runs/2]) / 2
@@ -171,4 +165,27 @@ func AutoRun(b *testing.B, f func(), minN, maxN int64) {
 			Run(b, f)
 		})
 	}
+}
+
+// quickSort sorts a float64 slice using quicksort algorithm
+func quickSort(arr []float64, low, high int) {
+	if low < high {
+		pivot := partition(arr, low, high)
+		quickSort(arr, low, pivot-1)
+		quickSort(arr, pivot+1, high)
+	}
+}
+
+// partition performs partition for quicksort
+func partition(arr []float64, low, high int) int {
+	pivot := arr[high]
+	i := low - 1
+	for j := low; j < high; j++ {
+		if arr[j] < pivot {
+			i++
+			arr[i], arr[j] = arr[j], arr[i]
+		}
+	}
+	arr[i+1], arr[high] = arr[high], arr[i+1]
+	return i + 1
 }
