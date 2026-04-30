@@ -2,3 +2,5 @@
 *.exe
 vendor/
 go.work
+coverage.out
+*.test

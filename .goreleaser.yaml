@@ -1,0 +1,26 @@
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - id: gotestkit
+    dir: .
+    main: .
+    mod: ./...
+
+archives:
+  - id: default
+    format: zip
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ .Tag }}-next"
+
+release:
+  github:
+    owner: atop0914
+    name: gotestkit-bootcamp
+  draft: false
+  prelease: false
